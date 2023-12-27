@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { LoginDto } from "./dto";
 import { HttpService } from "@nestjs/axios";
+import { catchError, firstValueFrom } from "rxjs";
+import { AxiosError } from "axios";
 const https = require('https');
 
  /**
@@ -20,25 +22,52 @@ export class AuthService {
     async login(credentials: LoginDto) {
         const { username, password } = credentials;
 
-        const response = await this.httpService.axiosRef.request({
-            url: "https://keycloak.192.168.49.2.nip.io/realms/learn-factory-api/protocol/openid-connect/token",
-            method: "post",
-            data: {
-                username,
-                password,
-                "grant_type": "password",
-                "client_id":"nest-app"
-            },
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            auth: {
-                username: "nest-app",
-                password: "JHeFW2ZtdsJGphqkorsVPx4lODhzUVzA"
-            },
-            httpsAgent: new https.Agent({ rejectUnauthorized: false }), // ignore certification ssl verification
-        });
+        const { data } = await firstValueFrom(
+            this.httpService.request({
+                url: "https://keycloak.192.168.49.2.nip.io/realms/learn-factory-api/protocol/openid-connect/token",
+                method: "post",
+                data: {
+                    username,
+                    password,
+                    "grant_type": "password",
+                    "client_id":"nest-app"
+                },
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                auth: {
+                    username: "nest-app",
+                    password: "JHeFW2ZtdsJGphqkorsVPx4lODhzUVzA"
+                },
+                httpsAgent: new https.Agent({ rejectUnauthorized: false }), // ignore certification ssl verification
+            }).pipe(
+                catchError((error: AxiosError) => {
+                    throw 'An error happened!';
+                }),
+            )
+        );
 
-        return response.data;
+        return await data;
+
+        // const response = await this.httpService.axiosRef.request({
+        //     url: "https://keycloak.192.168.49.2.nip.io/realms/learn-factory-api/protocol/openid-connect/token",
+        //     method: "post",
+        //     data: {
+        //         username,
+        //         password,
+        //         "grant_type": "password",
+        //         "client_id":"nest-app"
+        //     },
+        //     headers: {
+        //         "Content-Type": "application/x-www-form-urlencoded"
+        //     },
+        //     auth: {
+        //         username: "nest-app",
+        //         password: "JHeFW2ZtdsJGphqkorsVPx4lODhzUVzA"
+        //     },
+        //     httpsAgent: new https.Agent({ rejectUnauthorized: false }), // ignore certification ssl verification
+        // });
+
+        // return response.data;
     }
 }
